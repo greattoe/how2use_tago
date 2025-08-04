@@ -51,13 +51,13 @@
 URL에서 사용 가능한 Encoding된 인증키
 
 ```
-ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D
+"your_encoded_authorization_key"
 ```
 
 Encoding되지않은 원본 인증키
 
 ```
-ygh//8luC+EBKC6eahxb3VZZI5R27EQgk2T+h+qryD5QK/XMbGnR2+0/SAE3C6slREn8QKOrZEXEPj7WPl0Tzw==
+"your_decoded_authorization_key"
 ```
 
 
@@ -65,7 +65,7 @@ ygh//8luC+EBKC6eahxb3VZZI5R27EQgk2T+h+qryD5QK/XMbGnR2+0/SAE3C6slREn8QKOrZEXEPj7W
 웹브라우저 URL에 다음(```getCtyCodeList```서비스를 요청하는 `request` `URL`)을 입력하고 엔터를 입력하면
 
 ```
-http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getCtyCodeList?serviceKey=ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D&_type=json
+http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getCtyCodeList?serviceKey="your_encoded_authorization_key"&_type=json
 ```
 
 그 응답이 웹브라우저에 다음과 같이 표시된다.
@@ -95,7 +95,7 @@ gedit get_city_codes.js &
 ```javascript
 const axios = require('axios');
 
-const encodedKey = 'ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D';
+const encodedKey = "your_encoded_authorization_key";
 
 const url = `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getCtyCodeList?serviceKey=${encodedKey}&_type=json`;
 
@@ -289,7 +289,7 @@ gedit get_station_id_by_gps.js
 ```javascript
 const axios = require('axios');
 
-const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
+const SERVICE_KEY = "your_encoded_authorization_key";
 
 // 기준 좌표 (강호항공고등학교 )
 const LAT = 35.428588;
@@ -424,7 +424,7 @@ node get_station_id_by_gps.js
 ```javascript
 const axios = require('axios');
 
-const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
+const SERVICE_KEY = "your_encoded_authorization_key";
 const CITY_CODE = "35370";  // 고창군
 const NODE_ID = "TSB318000118";  // 조회 대상 정류소 ID
 
@@ -631,7 +631,7 @@ node get_routes_at_station.js
 ```javascript
 const axios = require('axios');
 
-const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
+const SERVICE_KEY = "your_encoded_authorization_key";
 const CITY_CODE = "35370";
 const NODE_ID = "TSB318000118"; // 고창중 정류장
 const TARGET_ROUTE_NOS = ["189", "213", "261-1", "301", "323", "358"];
