@@ -1,0 +1,146 @@
+[
+  {
+    "citycode": 35370,
+    "gpslati": 35.43521,
+    "gpslong": 126.7014082,
+    "nodeid": "TSB318000115",
+    "nodenm": "군청사거리",
+    "nodeno": 3180115
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.434314,
+    "gpslong": 126.7019741,
+    "nodeid": "TSB318000122",
+    "nodenm": "군청사거리",
+    "nodeno": 3180122
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.434881,
+    "gpslong": 126.7044412,
+    "nodeid": "TSB318000510",
+    "nodenm": "연합신경외과",
+    "nodeno": 3180510
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.432924,
+    "gpslong": 126.700884,
+    "nodeid": "TSB318000512",
+    "nodenm": "중앙동",
+    "nodeno": 3180512
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.432721,
+    "gpslong": 126.7015921,
+    "nodeid": "TSB318000121",
+    "nodenm": "중앙동",
+    "nodeno": 3180121
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.435311,
+    "gpslong": 126.6982132,
+    "nodeid": "TSB318000116",
+    "nodenm": "고창안과",
+    "nodeno": 3180116
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.432955,
+    "gpslong": 126.6990991,
+    "nodeid": "TSB318000508",
+    "nodenm": "고창시장",
+    "nodeno": 3180508
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.438603,
+    "gpslong": 126.6996229,
+    "nodeid": "TSB318000123",
+    "nodenm": "청룡동",
+    "nodeno": 3180123
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.43882,
+    "gpslong": 126.699314,
+    "nodeid": "TSB318000114",
+    "nodenm": "청룡동",
+    "nodeno": 3180114
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.435383,
+    "gpslong": 126.696474,
+    "nodeid": "TSB318000117",
+    "nodenm": "고창터미널",
+    "nodeno": 3180117
+  },
+  {
+    "citycode": 36450,
+    "gpslati": 35.340751,
+    "gpslong": 126.7674901,
+    "nodeid": "TSB342000804",
+    "nodenm": "내연",
+    "nodeno": 3420804
+  },
+  {
+    "citycode": 36450,
+    "gpslati": 35.340762,
+    "gpslong": 126.7675718,
+    "nodeid": "TSB342000803",
+    "nodenm": "내연",
+    "nodeno": 3420803
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.45792,
+    "gpslong": 126.559566,
+    "nodeid": "TSB318000868",
+    "nodenm": "신흥",
+    "nodeno": 3180868
+  },
+  {
+    "citycode": 35370,
+    "gpslati": 35.457838,
+    "gpslong": 126.559512,
+    "nodeid": "TSB318000867",
+    "nodenm": "신흥",
+    "nodeno": 3180867
+  },
+  {
+    "citycode": 36450,
+    "gpslati": 35.330717,
+    "gpslong": 126.7186309,
+    "nodeid": "TSB342000850",
+    "nodenm": "원금동",
+    "nodeno": 3420850
+  },
+  {
+    "citycode": 36450,
+    "gpslati": 35.331339,
+    "gpslong": 126.7214551,
+    "nodeid": "TSB342000963",
+    "nodenm": "금호리",
+    "nodeno": 3420963
+  },
+  {
+    "citycode": 36450,
+    "gpslati": 35.328509,
+    "gpslong": 126.723204,
+    "nodeid": "TSB342000569",
+    "nodenm": "초지마을",
+    "nodeno": 3420569
+  },
+  {
+    "citycode": 36450,
+    "gpslati": 35.32844,
+    "gpslong": 126.7231579,
+    "nodeid": "TSB342000964",
+    "nodenm": "초지마을",
+    "nodeno": 3420964
+  }
+]
