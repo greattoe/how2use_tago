@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
+const SERVICE_KEY = "your_encoded_authorization_key";
 
 // 기준 좌표 (강호항공고등학교 )
 const LAT = 35.428588;

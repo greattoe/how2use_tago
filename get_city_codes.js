@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const encodedKey = 'ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D';
+const encodedKey = "your_encoded_authorization_key";
 
 const url = `http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getCtyCodeList?serviceKey=${encodedKey}&_type=json`;
 
