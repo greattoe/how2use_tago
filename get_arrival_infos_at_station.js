@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
+const SERVICE_KEY = "여기에_본인_서비스키";
 const CITY_CODE = "35370";
 const NODE_ID = "TSB318000513"; // 고창중 정류장
 const TARGET_ROUTE_NOS = ["189", "206", "213", "261", "301", "323", "358"];

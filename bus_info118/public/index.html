@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Bus Arrival Infos</title>
+  <style>
+    body {
+      padding: 25px;
+      font: 12px "Lucida Grande", Helvetica, Arial, sans-serif;
+    }
+    #canvas {
+      border: 1px solid lightgrey;
+    }
+    table {
+      border: 1px solid lightgrey;
+      border-collapse: collapse;
+    }
+    td {
+      border: 1px solid lightgrey;
+      padding: 8px;
+    }
+    #title {
+      font-weight: bold;
+      font-size: 48px;
+      color: #777;
+    }
+    a {
+      color: #00B7FF;
+    }
+  </style>
+</head>
+
+<body>
+  <p>&nbsp;</p>
+  <table width="640" height="480">
+    <tr align="center" height="40">
+      <td colspan="5"><h3>고창중 정류장 버스 운행 정보 안내</h3></td>
+    </tr>
+    <tr align="center" height="40">
+      <td width="60">노선</td><td colspan="4">운행정보</td>
+    </tr>
+    <tr align="center" height="40"><td>189</td><td colspan="4" id="189">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>208</td><td colspan="4" id="208">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>213</td><td colspan="4" id="213">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>261</td><td colspan="4" id="261">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>301</td><td colspan="4" id="301">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>323</td><td colspan="4" id="323">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>358</td><td colspan="4" id="358">&nbsp;</td></tr>
+
+    <tr align="center" height="40">
+      <td>냉방</td>
+      <td colspan="3">
+        <input type="button" value="ON" onclick="turn_on_cooler()"> &nbsp; 
+        <input type="button" value="OFF" onclick="turn_off_cooler()">
+      </td>
+      <td id="cool">&nbsp;</td>
+    </tr>
+    <tr align="center" height="40">
+      <td>난방</td>
+      <td colspan="3">
+        <input type="button" value="ON" onclick="turn_on_heater()"> &nbsp; 
+        <input type="button" value="OFF" onclick="turn_off_heater()">
+      </td>
+      <td id="heat">&nbsp;</td>
+    </tr>
+    <tr align="center" height="40">
+      <td>배터리</td><td colspan="3">&nbsp;</td>
+      <td>78%</td>
+    </tr>
+  </table>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(function () {
+      var socket = io();
+      socket.on('189', function (info) { $('#189').text(info); });
+      socket.on('208', function (info) { $('#208').text(info); });
+      socket.on('213', function (info) { $('#213').text(info); });
+      socket.on('261', function (info) { $('#261').text(info); });
+      socket.on('301', function (info) { $('#301').text(info); });
+      socket.on('323', function (info) { $('#323').text(info); });
+      socket.on('358', function (info) { $('#358').text(info); });
+    });
+
+    function turn_on_cooler(){
+      $('#cool').text("ON");
+    }
+    function turn_off_cooler(){
+      $('#cool').text("OFF");
+    }
+    function turn_on_heater(){
+      $('#heat').text("ON");
+    }
+    function turn_off_heater(){
+      $('#heat').text("OFF");
+    }
+  </script>
+</body>
+</html>
+

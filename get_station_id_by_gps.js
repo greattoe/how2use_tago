@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const SERVICE_KEY = "your_encoded_authorization_key";
+const SERVICE_KEY = "여기에_본인_서비스키";
 // 기준 좌표 (고창중 근처 예시)
 const LAT = 35.428588
 const LNG = 126.693797
