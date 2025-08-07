@@ -1066,14 +1066,13 @@ const io = socketIO(server);
 app.use(express.static(__dirname + '/public'));
 
 const PORT = 3118;
-
 const SERVICE_KEY = "여기에_본인_서비스키";
-const CITY_CODE = "35370";  // 고창군
+const CITY_CODE = "35370"; // 고창군
 const NODE_ID = "TSB318000118"; // 고창중
 const TARGET_ROUTE_NOS = ["189", "208", "213", "261", "301", "323", "358"];
 const CACHE_FILE = "route_info_cache.json";
 
-// 현재 HHMM
+// 현재 HHMM 반환
 function getCurrentTimeHHMM() {
   const now = new Date();
   return parseInt(now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0'), 10);
@@ -1084,7 +1083,7 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// 캐시 로딩
+// 캐시 파일 불러오기
 function loadRouteInfoCache() {
   try {
     const json = fs.readFileSync(CACHE_FILE, 'utf8');
@@ -1100,7 +1099,7 @@ function loadRouteInfoCache() {
   }
 }
 
-// 캐시 저장
+// 캐시 파일 저장
 function saveRouteInfoCache(cache) {
   try {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
@@ -1109,17 +1108,17 @@ function saveRouteInfoCache(cache) {
   }
 }
 
-// 정류장을 경유하는 노선 조회
+// 노선 리스트 조회
 async function fetchRoutesAtStation() {
   const url = `https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeid=${NODE_ID}` +
               `&_type=json&numOfRows=100&pageNo=1`;
   const response = await axios.get(url);
   const items = response.data?.response?.body?.items?.item;
-  return Array.isArray(items) ? items : [items];
+  return Array.isArray(items) ? items : (items ? [items] : []);
 }
 
-// 노선 상세정보 조회 (API 호출)
+// 노선 상세정보 조회
 async function fetchRouteInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteInfoIem` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&routeId=${routeId}&_type=json`;
@@ -1127,7 +1126,7 @@ async function fetchRouteInfo(routeId) {
   return response.data?.response?.body?.items?.item || null;
 }
 
-// 캐시된 routeInfo 조회
+// 캐시로부터 조회 또는 API 호출
 async function getCachedRouteInfo(routeId, cache) {
   if (cache.data[routeId]) return cache.data[routeId];
   const info = await fetchRouteInfo(routeId);
@@ -1138,22 +1137,21 @@ async function getCachedRouteInfo(routeId, cache) {
   return info;
 }
 
-// 도착정보 조회
+// 도착 정보 조회
 async function fetchArrivalInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeId=${NODE_ID}&routeId=${routeId}&_type=json`;
   const response = await axios.get(url);
   const items = response.data?.response?.body?.items?.item;
-  return Array.isArray(items) ? items : [items];
+  return Array.isArray(items) ? items : (items ? [items] : []);
 }
 
-// 메인 처리 함수
+// 실시간 버스 도착 정보 갱신
 async function updateBusInfos() {
   try {
     const nowHHMM = getCurrentTimeHHMM();
     const routes = await fetchRoutesAtStation();
     const cache = loadRouteInfoCache();
-
     const targetRoutes = routes.filter(r => TARGET_ROUTE_NOS.includes(String(r.routeno)));
 
     for (const routeNo of TARGET_ROUTE_NOS) {
@@ -1188,13 +1186,17 @@ async function updateBusInfos() {
       }
 
       const arrivals = await fetchArrivalInfo(routeId);
-      if (arrivals.length === 0) {
+
+      if (!arrivals || arrivals.length === 0 || !arrivals[0]) {
         const msg = "도착 정보 없음";
         console.log("[%s] %s", routeNo, msg);
         io.emit(routeNo, msg);
       } else {
         const info = arrivals[0];
-        const msg = `${info.arrtime}초 후 도착 (${info.arrprevstationcnt}개 정류장 남음), 차량: ${info.vehicletp || "정보 없음"}`;
+        const arrtime = info.arrtime || "정보 없음";
+        const stationcnt = info.arrprevstationcnt || "정보 없음";
+        const vehicle = info.vehicletp || "정보 없음";
+        const msg = "%s초 후 도착 (%s개 정류장 남음), 차량: %s" % [arrtime, stationcnt, vehicle];
         console.log("[%s] %s", routeNo, msg);
         io.emit(routeNo, msg);
       }
@@ -1207,10 +1209,10 @@ async function updateBusInfos() {
 }
 
 setInterval(updateBusInfos, 10000); // 10초마다 갱신
-
 server.listen(PORT, () => {
   console.log('listening on *:' + PORT);
 });
+
 
 
 ```
@@ -1279,7 +1281,7 @@ gedit ./public/index.html &
         <input type="button" value="ON" onclick="turn_on_cooler()"> &nbsp; 
         <input type="button" value="OFF" onclick="turn_off_cooler()">
       </td>
-      <td id="cool">&nbsp;</td>
+      <td id="cool">ON</td>
     </tr>
     <tr align="center" height="40">
       <td>난방</td>
@@ -1287,11 +1289,11 @@ gedit ./public/index.html &
         <input type="button" value="ON" onclick="turn_on_heater()"> &nbsp; 
         <input type="button" value="OFF" onclick="turn_off_heater()">
       </td>
-      <td id="heat">&nbsp;</td>
+      <td id="heat">OFF</td>
     </tr>
     <tr align="center" height="40">
       <td>배터리</td><td colspan="3">&nbsp;</td>
-      <td>&nbsp;</td>
+      <td>81%</td>
     </tr>
   </table>
 
@@ -1340,7 +1342,7 @@ node app.js
 
 웹브라우저(Chrome 외)에서의 확인
 
-URL창에 `localhost:3118`을 입력 후, 엔터
+URL창에 **`localhost:3118`**을 입력 후, 엔터
 
 ![](./img/station118.png)
 
@@ -1394,14 +1396,13 @@ const io = socketIO(server);
 app.use(express.static(__dirname + '/public'));
 
 const PORT = 3119;
-
 const SERVICE_KEY = "여기에_본인_서비스키";
 const CITY_CODE = "35370"; // 고창군
 const NODE_ID = "TSB318000119"; // 보건소
 const TARGET_ROUTE_NOS = ["189", "208", "213", "261", "301", "323", "358"];
 const CACHE_FILE = "route_info_cache.json";
 
-// 현재 HHMM
+// 현재 HHMM 반환
 function getCurrentTimeHHMM() {
   const now = new Date();
   return parseInt(now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0'), 10);
@@ -1412,7 +1413,7 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// 캐시 로딩
+// 캐시 파일 불러오기
 function loadRouteInfoCache() {
   try {
     const json = fs.readFileSync(CACHE_FILE, 'utf8');
@@ -1428,7 +1429,7 @@ function loadRouteInfoCache() {
   }
 }
 
-// 캐시 저장
+// 캐시 파일 저장
 function saveRouteInfoCache(cache) {
   try {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
@@ -1437,17 +1438,17 @@ function saveRouteInfoCache(cache) {
   }
 }
 
-// 정류장을 경유하는 노선 조회
+// 노선 리스트 조회
 async function fetchRoutesAtStation() {
   const url = `https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeid=${NODE_ID}` +
               `&_type=json&numOfRows=100&pageNo=1`;
   const response = await axios.get(url);
   const items = response.data?.response?.body?.items?.item;
-  return Array.isArray(items) ? items : [items];
+  return Array.isArray(items) ? items : (items ? [items] : []);
 }
 
-// 노선 상세정보 조회 (API 호출)
+// 노선 상세정보 조회
 async function fetchRouteInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteInfoIem` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&routeId=${routeId}&_type=json`;
@@ -1455,7 +1456,7 @@ async function fetchRouteInfo(routeId) {
   return response.data?.response?.body?.items?.item || null;
 }
 
-// 캐시된 routeInfo 조회
+// 캐시로부터 조회 또는 API 호출
 async function getCachedRouteInfo(routeId, cache) {
   if (cache.data[routeId]) return cache.data[routeId];
   const info = await fetchRouteInfo(routeId);
@@ -1466,22 +1467,21 @@ async function getCachedRouteInfo(routeId, cache) {
   return info;
 }
 
-// 도착정보 조회
+// 도착 정보 조회
 async function fetchArrivalInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeId=${NODE_ID}&routeId=${routeId}&_type=json`;
   const response = await axios.get(url);
   const items = response.data?.response?.body?.items?.item;
-  return Array.isArray(items) ? items : [items];
+  return Array.isArray(items) ? items : (items ? [items] : []);
 }
 
-// 메인 처리 함수
+// 실시간 버스 도착 정보 갱신
 async function updateBusInfos() {
   try {
     const nowHHMM = getCurrentTimeHHMM();
     const routes = await fetchRoutesAtStation();
     const cache = loadRouteInfoCache();
-
     const targetRoutes = routes.filter(r => TARGET_ROUTE_NOS.includes(String(r.routeno)));
 
     for (const routeNo of TARGET_ROUTE_NOS) {
@@ -1516,13 +1516,17 @@ async function updateBusInfos() {
       }
 
       const arrivals = await fetchArrivalInfo(routeId);
-      if (arrivals.length === 0) {
+
+      if (!arrivals || arrivals.length === 0 || !arrivals[0]) {
         const msg = "도착 정보 없음";
         console.log("[%s] %s", routeNo, msg);
         io.emit(routeNo, msg);
       } else {
         const info = arrivals[0];
-        const msg = `${info.arrtime}초 후 도착 (${info.arrprevstationcnt}개 정류장 남음), 차량: ${info.vehicletp || "정보 없음"}`;
+        const arrtime = info.arrtime || "정보 없음";
+        const stationcnt = info.arrprevstationcnt || "정보 없음";
+        const vehicle = info.vehicletp || "정보 없음";
+        const msg = "%s초 후 도착 (%s개 정류장 남음), 차량: %s" % [arrtime, stationcnt, vehicle];
         console.log("[%s] %s", routeNo, msg);
         io.emit(routeNo, msg);
       }
@@ -1535,11 +1539,9 @@ async function updateBusInfos() {
 }
 
 setInterval(updateBusInfos, 10000); // 10초마다 갱신
-
 server.listen(PORT, () => {
   console.log('listening on *:' + PORT);
 });
-
 
 ```
 
@@ -1605,7 +1607,7 @@ gedit ./public/index.html &
         <input type="button" value="ON" onclick="turn_on_cooler()"> &nbsp; 
         <input type="button" value="OFF" onclick="turn_off_cooler()">
       </td>
-      <td id="cool">&nbsp;</td>
+      <td id="cool">ON</td>
     </tr>
     <tr align="center" height="40">
       <td>난방</td>
@@ -1613,11 +1615,11 @@ gedit ./public/index.html &
         <input type="button" value="ON" onclick="turn_on_heater()"> &nbsp; 
         <input type="button" value="OFF" onclick="turn_off_heater()">
       </td>
-      <td id="heat">&nbsp;</td>
+      <td id="heat">OFF</td>
     </tr>
     <tr align="center" height="40">
       <td>배터리</td><td colspan="3">&nbsp;</td>
-      <td>&nbsp;</td>
+      <td>81%</td>
     </tr>
   </table>
 
@@ -1650,7 +1652,6 @@ gedit ./public/index.html &
   </script>
 </body>
 </html>
-
 
 ```
 
@@ -1720,14 +1721,13 @@ const io = socketIO(server);
 app.use(express.static(__dirname + '/public'));
 
 const PORT = 3513;
-
 const SERVICE_KEY = "여기에_본인_서비스키";
 const CITY_CODE = "35370"; // 고창군
-const NODE_ID = "TSB318000513"; // 시내버스터미널
+const NODE_ID = "TSB318000523"; // 시내버스터미널
 const TARGET_ROUTE_NOS = ["189", "208", "213", "261", "301", "323", "358"];
 const CACHE_FILE = "route_info_cache.json";
 
-// 현재 HHMM
+// 현재 HHMM 반환
 function getCurrentTimeHHMM() {
   const now = new Date();
   return parseInt(now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0'), 10);
@@ -1738,7 +1738,7 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// 캐시 로딩
+// 캐시 파일 불러오기
 function loadRouteInfoCache() {
   try {
     const json = fs.readFileSync(CACHE_FILE, 'utf8');
@@ -1754,7 +1754,7 @@ function loadRouteInfoCache() {
   }
 }
 
-// 캐시 저장
+// 캐시 파일 저장
 function saveRouteInfoCache(cache) {
   try {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
@@ -1763,17 +1763,17 @@ function saveRouteInfoCache(cache) {
   }
 }
 
-// 정류장을 경유하는 노선 조회
+// 노선 리스트 조회
 async function fetchRoutesAtStation() {
   const url = `https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeid=${NODE_ID}` +
               `&_type=json&numOfRows=100&pageNo=1`;
   const response = await axios.get(url);
   const items = response.data?.response?.body?.items?.item;
-  return Array.isArray(items) ? items : [items];
+  return Array.isArray(items) ? items : (items ? [items] : []);
 }
 
-// 노선 상세정보 조회 (API 호출)
+// 노선 상세정보 조회
 async function fetchRouteInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteInfoIem` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&routeId=${routeId}&_type=json`;
@@ -1781,7 +1781,7 @@ async function fetchRouteInfo(routeId) {
   return response.data?.response?.body?.items?.item || null;
 }
 
-// 캐시된 routeInfo 조회
+// 캐시로부터 조회 또는 API 호출
 async function getCachedRouteInfo(routeId, cache) {
   if (cache.data[routeId]) return cache.data[routeId];
   const info = await fetchRouteInfo(routeId);
@@ -1792,22 +1792,21 @@ async function getCachedRouteInfo(routeId, cache) {
   return info;
 }
 
-// 도착정보 조회
+// 도착 정보 조회
 async function fetchArrivalInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeId=${NODE_ID}&routeId=${routeId}&_type=json`;
   const response = await axios.get(url);
   const items = response.data?.response?.body?.items?.item;
-  return Array.isArray(items) ? items : [items];
+  return Array.isArray(items) ? items : (items ? [items] : []);
 }
 
-// 메인 처리 함수
+// 실시간 버스 도착 정보 갱신
 async function updateBusInfos() {
   try {
     const nowHHMM = getCurrentTimeHHMM();
     const routes = await fetchRoutesAtStation();
     const cache = loadRouteInfoCache();
-
     const targetRoutes = routes.filter(r => TARGET_ROUTE_NOS.includes(String(r.routeno)));
 
     for (const routeNo of TARGET_ROUTE_NOS) {
@@ -1842,13 +1841,17 @@ async function updateBusInfos() {
       }
 
       const arrivals = await fetchArrivalInfo(routeId);
-      if (arrivals.length === 0) {
+
+      if (!arrivals || arrivals.length === 0 || !arrivals[0]) {
         const msg = "도착 정보 없음";
         console.log("[%s] %s", routeNo, msg);
         io.emit(routeNo, msg);
       } else {
         const info = arrivals[0];
-        const msg = `${info.arrtime}초 후 도착 (${info.arrprevstationcnt}개 정류장 남음), 차량: ${info.vehicletp || "정보 없음"}`;
+        const arrtime = info.arrtime || "정보 없음";
+        const stationcnt = info.arrprevstationcnt || "정보 없음";
+        const vehicle = info.vehicletp || "정보 없음";
+        const msg = "%s초 후 도착 (%s개 정류장 남음), 차량: %s" % [arrtime, stationcnt, vehicle];
         console.log("[%s] %s", routeNo, msg);
         io.emit(routeNo, msg);
       }
@@ -1861,11 +1864,9 @@ async function updateBusInfos() {
 }
 
 setInterval(updateBusInfos, 10000); // 10초마다 갱신
-
 server.listen(PORT, () => {
   console.log('listening on *:' + PORT);
 });
-
 
 ```
 
@@ -1897,9 +1898,6 @@ gedit ./public/index.html &
       border: 1px solid lightgrey;
       padding: 8px;
     }
-    iframe {
-      overflow: hidden;
-    }
     #title {
       font-weight: bold;
       font-size: 48px;
@@ -1914,16 +1912,40 @@ gedit ./public/index.html &
 <body>
   <p>&nbsp;</p>
   <table width="640" height="480">
-    <tr align="center" height="50"><td colspan="2"><h1>시내버스터미널 정류장 버스 도착 정보 안내</h1></td></tr>
+    <tr align="center" height="40">
+      <td colspan="5"><h3>시내버스터미널 정류장 버스 운행 정보 안내</h3></td>
     </tr>
-    <tr align="center" height="50"><td width="60">노선</td><td>도착정보</td></tr>
-    <tr align="center" height="50"><td>189</td><td id="189">&nbsp;</td></tr>
-    <tr align="center" height="50"><td>208</td><td id="208">&nbsp;</td></tr>
-    <tr align="center" height="50"><td>213</td><td id="213">&nbsp;</td></tr>
-    <tr align="center" height="50"><td>261</td><td id="261">&nbsp;</td></tr>
-    <tr align="center" height="50"><td>301</td><td id="301">&nbsp;</td></tr>
-    <tr align="center" height="50"><td>323</td><td id="323">&nbsp;</td></tr>
-    <tr align="center" height="50"><td>358</td><td id="358">&nbsp;</td></tr>
+    <tr align="center" height="40">
+      <td width="60">노선</td><td colspan="4">운행정보</td>
+    </tr>
+    <tr align="center" height="40"><td>189</td><td colspan="4" id="189">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>208</td><td colspan="4" id="208">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>213</td><td colspan="4" id="213">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>261</td><td colspan="4" id="261">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>301</td><td colspan="4" id="301">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>323</td><td colspan="4" id="323">&nbsp;</td></tr>
+    <tr align="center" height="40"><td>358</td><td colspan="4" id="358">&nbsp;</td></tr>
+
+    <tr align="center" height="40">
+      <td>냉방</td>
+      <td colspan="3">
+        <input type="button" value="ON" onclick="turn_on_cooler()"> &nbsp; 
+        <input type="button" value="OFF" onclick="turn_off_cooler()">
+      </td>
+      <td id="cool">ON</td>
+    </tr>
+    <tr align="center" height="40">
+      <td>난방</td>
+      <td colspan="3">
+        <input type="button" value="ON" onclick="turn_on_heater()"> &nbsp; 
+        <input type="button" value="OFF" onclick="turn_off_heater()">
+      </td>
+      <td id="heat">OFF</td>
+    </tr>
+    <tr align="center" height="40">
+      <td>배터리</td><td colspan="3"></td>
+      <td>80%</td>
+    </tr>
   </table>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -1939,6 +1961,19 @@ gedit ./public/index.html &
       socket.on('323', function (info) { $('#323').text(info); });
       socket.on('358', function (info) { $('#358').text(info); });
     });
+
+    function turn_on_cooler(){
+      $('#cool').text("ON");
+    }
+    function turn_off_cooler(){
+      $('#cool').text("OFF");
+    }
+    function turn_on_heater(){
+      $('#heat').text("ON");
+    }
+    function turn_off_heater(){
+      $('#heat').text("OFF");
+    }
   </script>
 </body>
 </html>
@@ -1955,9 +1990,40 @@ cd ~/bus_info513
 node app.js
 ```
 
+```
+[189] 운행 종료
+[208] 운행 종료
+[213] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[261] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[301] 운행 종료
+[323] 운행 종료
+[358] 운행 종료
+[189] 운행 종료
+[208] 운행 종료
+[213] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[261] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[301] 운행 종료
+[323] 운행 종료
+[358] 운행 종료
+[189] 운행 종료
+[208] 운행 종료
+[213] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[261] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[301] 운행 종료
+[323] 운행 종료
+[358] 운행 종료
+[189] 운행 종료
+[208] 운행 종료
+[213] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[261] 24초 후 도착 (1개 정류장 남음), 차량: 일반차량
+[301] 운행 종료
+[323] 운행 종료
+[358] 운행 종료
+```
+
 웹브라우저(Chrome 외)에서의 확인
 
-URL창에 `localhost:3513`을 입력 후, 엔터
+URL창에 **`localhost:3513`**을 입력 후, 엔터
 
 ![](./img/station513.png)
 
