@@ -2,15 +2,25 @@
 
 ## 버스 정류장 정보 공공 API 활용법
 
-참조 https://senticoding.tistory.com/25
+**참조** https://senticoding.tistory.com/25
 
-필요한 Open API
+**목표** 버스 정류장 정보 공공 API를 활용한 버스도착 정보 및 및 ESS 기반 편의기능 제공 웹서버 구현
 
-**1. 버스노선 조회 서비스**
+### 개발환경
 
-**2. 정류소 조회 서비스**
+**1. 운영체제** Raspbian or Ubuntu
 
-**3. 버스 도착 정보 조회 서비스**
+**2. 개발언어** Node.js, HTML, Javascript
+
+
+
+### 필요한 Open API
+
+**1. 버스노선 조회 서비스** 국토교통부_(TAGO)_버스노선정보
+
+**2. 정류소 조회 서비스** 국토교통부_(TAGO)_버스정류소정보
+
+**3. 버스 도착 정보 조회 서비스** 국토교통부_(TAGO)_버스도착정보
 
 이상 3가지 API 이용 Key 발급을 위해 공공 데이터 포털 :[ https://www.data.go.kr/](https://www.data.go.kr/)에 회원 가입한다.
 
@@ -67,6 +77,8 @@ Encoding되지않은 원본 인증키
 ```
 http://apis.data.go.kr/1613000/BusRouteInfoInqireService/getCtyCodeList?serviceKey="your_encoded_authorization_key"&_type=json
 ```
+
+`"your_encoded_authorization_key"`부분을 발급받은 자신의 key값으로 바꿔줘야한다.
 
 그 응답이 웹브라우저에 다음과 같이 표시된다.
 
@@ -279,11 +291,11 @@ node get_city_codes.js
 
 
 
-GPS좌표를 중심으로 반경 1(Km) 이내의 정류장 검색 코드 `find_station_by_gps.js`작성
+GPS좌표를 중심으로 반경 1(Km) 이내의 정류장 검색 코드 `get_station_id_by_gps.js`작성
 
 ```bash
 cd ~/test_api
-gedit get_station_id_by_gps.js
+gedit get_station_id_by_gps.js	
 ```
 
 ```javascript
@@ -366,7 +378,7 @@ fetchNearbyStations();
 고창중, 보건소, 시내버스터미널 정류장 등의 정류장 ID를 알아낼 수 있다.
 
 ```bash
-node get_station_id_by_gps.js 
+node get_station_id_by_gps.js
 반경 500 m 내 정류장 목록 (거리 직접 계산):
 ======== 정류장 1 ========
 정류장명: 고창중
@@ -622,7 +634,7 @@ node get_routes_at_station.js
 
 위 노선 검색 결과를 바탕으로 3 정류장을 모두 경유하는 노선을 임의로 몇 개 선택한다.
 
-`189`, `208` `213`, `261-1`, `301` `323`, `358`
+`189`, `208` `213`, `261`, `301` `323`, `358`
 
 
 
@@ -634,7 +646,7 @@ const axios = require('axios');
 const SERVICE_KEY = "your_encoded_authorization_key";
 const CITY_CODE = "35370";
 const NODE_ID = "TSB318000118"; // 고창중 정류장
-const TARGET_ROUTE_NOS = ["189", "213", "261-1", "301", "323", "358"];
+const TARGET_ROUTE_NOS = ["189", "213", "261", "301", "323", "358"];
 
 // 현재 HHMM 시간 반환
 function getCurrentTimeHHMM() {
@@ -812,7 +824,7 @@ node get_arrival_infos_at_station.js
 - 현재시각: 1107
 - 운행상태: 운행 종료
 --------------------------------------------------
-노선번호: 261-1
+노선번호: 261
 - 첫차시간: 0710
 - 막차시간: 1420
 - 현재시각: 1107
@@ -834,3 +846,793 @@ node get_arrival_infos_at_station.js
 ```
 
 `const NODE_ID = "TSB318000118";`부분의 정류장 ID부분만 보건소, 시내버스터미널의 ID로 변경하여 사용할 수 있다.
+
+이 코드를 기반으로 고창중 정류장 버스도착정보 웹서버, 보건소 정류장 버스도착정보 웹서버, 시내버스터미널 정류장 버스도착정보 웹서버를 각각 구현하는데, 각 정류장ID를 참조하여 다음 표를 참조하여 서버를 구현하기로 한다.
+
+
+
+| 정류장            | 정류장ID     | 웹앱(폴더)명 |
+| ----------------- | ------------ | ------------ |
+| 1. 고창중         | TSB318000118 | bus118       |
+| 2. 보건소         | TSB318000119 | bus119       |
+| 3. 시내버스터미널 | TSB318000513 | bus513       |
+
+### 1. 고창중(bus118)
+
+`express`를 이용하여 웹 어플리케이션 `bus118` 작성
+
+```
+express bus_info118
+```
+
+웹 어플리케이션 `bus_info118` 폴더로 작업경로 변경
+
+```
+cd bus118
+```
+
+ 웹 어플리케이션 `bus_info118` 어플의 웹게시를 위한 기본 의존성 설치
+
+```
+npm i
+```
+
+
+
+ 웹 어플리케이션 `bus_info118` 어플의 추가 의존성 설치
+
+```
+npm i axios socket.io serialport
+```
+
+`app.js`수정 편집
+
+```
+gedit app.js &
+```
+
+```javascript
+const axios = require('axios');
+const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
+
+app.use(express.static(__dirname + '/public'));
+
+const PORT = 3118;
+
+const SERVICE_KEY = "your_encoded_authorization_key";
+const CITY_CODE = "35370"; // 고창군
+const NODE_ID = "TSB318000118"; //고창중
+const TARGET_ROUTE_NOS = ["189", "208", "213", "261", "301", "323", "358"];
+
+function getCurrentTimeHHMM() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  return parseInt(hh + mm, 10);
+}
+
+async function fetchRoutesAtStation() {
+  const url = `https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeid=${NODE_ID}` +
+              `&_type=json&numOfRows=100&pageNo=1`;
+
+  const response = await axios.get(url);
+  const items = response.data?.response?.body?.items?.item;
+  if (!items) return [];
+  return Array.isArray(items) ? items : [items];
+}
+
+async function fetchRouteInfo(routeId) {
+  const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteInfoIem` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&routeId=${routeId}&_type=json`;
+  const response = await axios.get(url);
+  return response.data?.response?.body?.items?.item || null;
+}
+
+async function fetchArrivalInfo(routeId) {
+  const url = `https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeId=${NODE_ID}&routeId=${routeId}&_type=json`;
+  const response = await axios.get(url);
+  const items = response.data?.response?.body?.items?.item;
+  if (!items) return [];
+  return Array.isArray(items) ? items : [items];
+}
+
+async function updateBusInfos() {
+  try {
+    const nowHHMM = getCurrentTimeHHMM();
+    const routes = await fetchRoutesAtStation();
+    const targetRoutes = routes.filter(r => TARGET_ROUTE_NOS.includes(String(r.routeno)));
+
+    for (const routeNo of TARGET_ROUTE_NOS) {
+      const route = targetRoutes.find(r => String(r.routeno) === routeNo);
+
+      if (!route) {
+        const msg = "해당 노선이 이 정류장을 경유하지 않음";
+        console.log("[%s] %s", routeNo, msg);
+        io.emit(routeNo, msg);
+        continue;
+      }
+
+      const routeId = route.routeid;
+      const routeInfo = await fetchRouteInfo(routeId);
+      if (!routeInfo) {
+        const msg = "상세 정보 조회 실패";
+        console.log("[%s] %s", routeNo, msg);
+        io.emit(routeNo, msg);
+        continue;
+      }
+
+      const first = parseInt(routeInfo.startvehicletime || "0000", 10);
+      const last = parseInt(routeInfo.endvehicletime || "0000", 10);
+      const isRunning = nowHHMM >= first && nowHHMM <= last;
+
+      if (!isRunning) {
+        const msg = "운행 종료";
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+        continue;
+      }
+
+      const arrivals = await fetchArrivalInfo(routeId);
+      if (arrivals.length === 0) {
+        const msg = "도착 정보 없음";
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+      } else {
+        const info = arrivals[0];
+        const msg = `${info.arrtime}초 후 도착 (${info.arrprevstationcnt}개 정류장 남음), 차량: ${info.vehicletp || "정보 없음"}`;
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+      }
+
+      await new Promise(res => setTimeout(res, 300));
+    }
+  } catch (err) {
+    console.error("오류 발생: %s", err.message);
+  }
+}
+
+setInterval(updateBusInfos, 10000); // 10초마다 갱신
+
+server.listen(PORT, () => {
+  console.log('listening on *:' + PORT);
+});
+
+```
+
+`index.html`작성
+
+```
+gedit ./public/index.html &
+```
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Bus Arrival Infos</title>
+  <style>
+    body {
+      padding: 25px;
+      font: 12px "Lucida Grande", Helvetica, Arial, sans-serif;
+    }
+    #canvas {
+      border: 1px solid lightgrey;
+    }
+    table {
+      border: 1px solid lightgrey;
+      border-collapse: collapse;
+    }
+    td {
+      border: 1px solid lightgrey;
+      padding: 8px;
+    }
+    iframe {
+      overflow: hidden;
+    }
+    #title {
+      font-weight: bold;
+      font-size: 48px;
+      color: #777;
+    }
+    a {
+      color: #00B7FF;
+    }
+  </style>
+</head>
+
+<body>
+  <p>&nbsp;</p>
+  <table width="640" height="480">
+    <tr align="center" height="50"><td colspan="2"><h1>고창중 정류장 버스 도착 정보 안내</h1></td></tr>
+    </tr>
+    <tr align="center" height="50"><td width="60">노선</td><td>도착정보</td></tr>
+    <tr align="center" height="50"><td>189</td><td id="189">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>208</td><td id="208">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>213</td><td id="213">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>261</td><td id="261">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>301</td><td id="301">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>323</td><td id="323">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>358</td><td id="358">&nbsp;</td></tr>
+  </table>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(function () {
+      var socket = io();
+      socket.on('189', function (info) { $('#189').text(info); });
+      socket.on('208', function (info) { $('#208').text(info); });
+      socket.on('213', function (info) { $('#213').text(info); });
+      socket.on('261', function (info) { $('#261').text(info); });
+      socket.on('301', function (info) { $('#301').text(info); });
+      socket.on('323', function (info) { $('#323').text(info); });
+      socket.on('358', function (info) { $('#358').text(info); });
+    });
+  </script>
+</body>
+</html>
+
+```
+
+서버 구동
+
+```
+cd ~/bus_info118
+```
+
+```
+node app.js
+```
+
+웹브라우저(Chrome 외)에서의 확인
+
+URL창에 `localhost:3118`을 입력 후, 엔터
+
+
+
+### 2. 보건소(bus119)
+
+`express`를 이용하여 웹 어플리케이션 `bus_info119`작성
+
+```
+express bus_info119
+```
+
+웹 어플리케이션 `bus_info119` 폴더로 작업경로 변경
+
+```
+cd bus118
+```
+
+ 웹 어플리케이션 `bus_info119` 어플의 웹게시를 위한 기본 의존성 설치
+
+```
+npm i
+```
+
+
+
+ 웹 어플리케이션 `bus_info119` 어플의 추가 의존성 설치
+
+```
+npm i axios socket.io serialport
+```
+
+`app.js`수정 편집
+
+```
+gedit app.js &
+```
+
+```javascript
+const axios = require('axios');
+const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
+
+app.use(express.static(__dirname + '/public'));
+
+const PORT = 3119;
+
+const SERVICE_KEY = "your_encoded_authorization_key";
+const CITY_CODE = "35370"; // 고창군
+const NODE_ID = "TSB318000119"; //보건소
+const TARGET_ROUTE_NOS = ["189", "208", "213", "261", "301", "323", "358"];
+
+function getCurrentTimeHHMM() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  return parseInt(hh + mm, 10);
+}
+
+async function fetchRoutesAtStation() {
+  const url = `https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeid=${NODE_ID}` +
+              `&_type=json&numOfRows=100&pageNo=1`;
+
+  const response = await axios.get(url);
+  const items = response.data?.response?.body?.items?.item;
+  if (!items) return [];
+  return Array.isArray(items) ? items : [items];
+}
+
+async function fetchRouteInfo(routeId) {
+  const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteInfoIem` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&routeId=${routeId}&_type=json`;
+  const response = await axios.get(url);
+  return response.data?.response?.body?.items?.item || null;
+}
+
+async function fetchArrivalInfo(routeId) {
+  const url = `https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeId=${NODE_ID}&routeId=${routeId}&_type=json`;
+  const response = await axios.get(url);
+  const items = response.data?.response?.body?.items?.item;
+  if (!items) return [];
+  return Array.isArray(items) ? items : [items];
+}
+
+async function updateBusInfos() {
+  try {
+    const nowHHMM = getCurrentTimeHHMM();
+    const routes = await fetchRoutesAtStation();
+    const targetRoutes = routes.filter(r => TARGET_ROUTE_NOS.includes(String(r.routeno)));
+
+    for (const routeNo of TARGET_ROUTE_NOS) {
+      const route = targetRoutes.find(r => String(r.routeno) === routeNo);
+
+      if (!route) {
+        const msg = "해당 노선이 이 정류장을 경유하지 않음";
+        console.log("[%s] %s", routeNo, msg);
+        io.emit(routeNo, msg);
+        continue;
+      }
+
+      const routeId = route.routeid;
+      const routeInfo = await fetchRouteInfo(routeId);
+      if (!routeInfo) {
+        const msg = "상세 정보 조회 실패";
+        console.log("[%s] %s", routeNo, msg);
+        io.emit(routeNo, msg);
+        continue;
+      }
+
+      const first = parseInt(routeInfo.startvehicletime || "0000", 10);
+      const last = parseInt(routeInfo.endvehicletime || "0000", 10);
+      const isRunning = nowHHMM >= first && nowHHMM <= last;
+
+      if (!isRunning) {
+        const msg = "운행 종료";
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+        continue;
+      }
+
+      const arrivals = await fetchArrivalInfo(routeId);
+      if (arrivals.length === 0) {
+        const msg = "도착 정보 없음";
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+      } else {
+        const info = arrivals[0];
+        const msg = `${info.arrtime}초 후 도착 (${info.arrprevstationcnt}개 정류장 남음), 차량: ${info.vehicletp || "정보 없음"}`;
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+      }
+
+      await new Promise(res => setTimeout(res, 300));
+    }
+  } catch (err) {
+    console.error("오류 발생: %s", err.message);
+  }
+}
+
+setInterval(updateBusInfos, 10000); // 10초마다 갱신
+
+server.listen(PORT, () => {
+  console.log('listening on *:' + PORT);
+});
+
+```
+
+`index.html`작성
+
+```
+gedit ./public/index.html &
+```
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Bus Arrival Infos</title>
+  <style>
+    body {
+      padding: 25px;
+      font: 12px "Lucida Grande", Helvetica, Arial, sans-serif;
+    }
+    #canvas {
+      border: 1px solid lightgrey;
+    }
+    table {
+      border: 1px solid lightgrey;
+      border-collapse: collapse;
+    }
+    td {
+      border: 1px solid lightgrey;
+      padding: 8px;
+    }
+    iframe {
+      overflow: hidden;
+    }
+    #title {
+      font-weight: bold;
+      font-size: 48px;
+      color: #777;
+    }
+    a {
+      color: #00B7FF;
+    }
+  </style>
+</head>
+
+<body>
+  <p>&nbsp;</p>
+  <table width="640" height="480">
+    <tr align="center" height="50"><td colspan="2"><h1>보건소 정류장 버스 도착 정보 안내</h1></td></tr>
+    </tr>
+    <tr align="center" height="50"><td width="60">노선</td><td>도착정보</td></tr>
+    <tr align="center" height="50"><td>189</td><td id="189">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>208</td><td id="208">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>213</td><td id="213">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>261</td><td id="261">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>301</td><td id="301">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>323</td><td id="323">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>358</td><td id="358">&nbsp;</td></tr>
+  </table>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(function () {
+      var socket = io();
+      socket.on('189', function (info) { $('#189').text(info); });
+      socket.on('208', function (info) { $('#208').text(info); });
+      socket.on('213', function (info) { $('#213').text(info); });
+      socket.on('261', function (info) { $('#261').text(info); });
+      socket.on('301', function (info) { $('#301').text(info); });
+      socket.on('323', function (info) { $('#323').text(info); });
+      socket.on('358', function (info) { $('#358').text(info); });
+    });
+  </script>
+</body>
+</html>
+
+```
+
+서버 구동
+
+```
+cd ~/bus_info119
+```
+
+```
+node app.js
+```
+
+웹브라우저(Chrome 외)에서의 확인
+
+URL창에 `localhost:3119`을 입력 후, 엔터
+
+
+
+
+
+### 3. 시내버스터미널(bus513)
+
+`express`를 이용하여 웹 어플리케이션 `bus_info513`작성
+
+```
+express bus_info513
+```
+
+웹 어플리케이션 `bus_info513` 폴더로 작업경로 변경
+
+```
+cd bus118
+```
+
+ 웹 어플리케이션 `bus_info513` 어플의 웹게시를 위한 기본 의존성 설치
+
+```
+npm i
+```
+
+
+
+ 웹 어플리케이션 `bus_info513` 어플의 추가 의존성 설치
+
+```
+npm i axios socket.io serialport
+```
+
+`app.js`수정 편집
+
+```
+gedit app.js &
+```
+
+```javascript
+const axios = require('axios');
+const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
+
+app.use(express.static(__dirname + '/public'));
+
+const PORT = 3513;
+
+const SERVICE_KEY = "your_encoded_authorization_key";
+const CITY_CODE = "35370"; // 고창군
+const NODE_ID = "TSB318000513"; //시내버스터미널
+const TARGET_ROUTE_NOS = ["189", "208", "213", "261", "301", "323", "358"];
+
+function getCurrentTimeHHMM() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  return parseInt(hh + mm, 10);
+}
+
+async function fetchRoutesAtStation() {
+  const url = `https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeid=${NODE_ID}` +
+              `&_type=json&numOfRows=100&pageNo=1`;
+
+  const response = await axios.get(url);
+  const items = response.data?.response?.body?.items?.item;
+  if (!items) return [];
+  return Array.isArray(items) ? items : [items];
+}
+
+async function fetchRouteInfo(routeId) {
+  const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteInfoIem` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&routeId=${routeId}&_type=json`;
+  const response = await axios.get(url);
+  return response.data?.response?.body?.items?.item || null;
+}
+
+async function fetchArrivalInfo(routeId) {
+  const url = `https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeId=${NODE_ID}&routeId=${routeId}&_type=json`;
+  const response = await axios.get(url);
+  const items = response.data?.response?.body?.items?.item;
+  if (!items) return [];
+  return Array.isArray(items) ? items : [items];
+}
+
+async function updateBusInfos() {
+  try {
+    const nowHHMM = getCurrentTimeHHMM();
+    const routes = await fetchRoutesAtStation();
+    const targetRoutes = routes.filter(r => TARGET_ROUTE_NOS.includes(String(r.routeno)));
+
+    for (const routeNo of TARGET_ROUTE_NOS) {
+      const route = targetRoutes.find(r => String(r.routeno) === routeNo);
+
+      if (!route) {
+        const msg = "해당 노선이 이 정류장을 경유하지 않음";
+        console.log("[%s] %s", routeNo, msg);
+        io.emit(routeNo, msg);
+        continue;
+      }
+
+      const routeId = route.routeid;
+      const routeInfo = await fetchRouteInfo(routeId);
+      if (!routeInfo) {
+        const msg = "상세 정보 조회 실패";
+        console.log("[%s] %s", routeNo, msg);
+        io.emit(routeNo, msg);
+        continue;
+      }
+
+      const first = parseInt(routeInfo.startvehicletime || "0000", 10);
+      const last = parseInt(routeInfo.endvehicletime || "0000", 10);
+      const isRunning = nowHHMM >= first && nowHHMM <= last;
+
+      if (!isRunning) {
+        const msg = "운행 종료";
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+        continue;
+      }
+
+      const arrivals = await fetchArrivalInfo(routeId);
+      if (arrivals.length === 0) {
+        const msg = "도착 정보 없음";
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+      } else {
+        const info = arrivals[0];
+        const msg = `${info.arrtime}초 후 도착 (${info.arrprevstationcnt}개 정류장 남음), 차량: ${info.vehicletp || "정보 없음"}`;
+        console.log("[%s] %s", routeNo, msg);
+        if (routeNo === "189") io.emit("189", msg);
+        else if (routeNo === "208") io.emit("208", msg);
+        else if (routeNo === "213") io.emit("213", msg);
+        else if (routeNo === "261") io.emit("261", msg);
+        else if (routeNo === "301") io.emit("301", msg);
+        else if (routeNo === "323") io.emit("323", msg);
+        else if (routeNo === "358") io.emit("358", msg);
+      }
+
+      await new Promise(res => setTimeout(res, 300));
+    }
+  } catch (err) {
+    console.error("오류 발생: %s", err.message);
+  }
+}
+
+setInterval(updateBusInfos, 10000); // 10초마다 갱신
+
+server.listen(PORT, () => {
+  console.log('listening on *:' + PORT);
+});
+
+```
+
+`index.html`작성
+
+```
+gedit ./public/index.html &
+```
+
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Bus Arrival Infos</title>
+  <style>
+    body {
+      padding: 25px;
+      font: 12px "Lucida Grande", Helvetica, Arial, sans-serif;
+    }
+    #canvas {
+      border: 1px solid lightgrey;
+    }
+    table {
+      border: 1px solid lightgrey;
+      border-collapse: collapse;
+    }
+    td {
+      border: 1px solid lightgrey;
+      padding: 8px;
+    }
+    iframe {
+      overflow: hidden;
+    }
+    #title {
+      font-weight: bold;
+      font-size: 48px;
+      color: #777;
+    }
+    a {
+      color: #00B7FF;
+    }
+  </style>
+</head>
+
+<body>
+  <p>&nbsp;</p>
+  <table width="640" height="480">
+    <tr align="center" height="50"><td colspan="2"><h1>시내버스터미널 정류장 버스 도착 정보 안내</h1></td></tr>
+    </tr>
+    <tr align="center" height="50"><td width="60">노선</td><td>도착정보</td></tr>
+    <tr align="center" height="50"><td>189</td><td id="189">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>208</td><td id="208">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>213</td><td id="213">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>261</td><td id="261">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>301</td><td id="301">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>323</td><td id="323">&nbsp;</td></tr>
+    <tr align="center" height="50"><td>358</td><td id="358">&nbsp;</td></tr>
+  </table>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(function () {
+      var socket = io();
+      socket.on('189', function (info) { $('#189').text(info); });
+      socket.on('208', function (info) { $('#208').text(info); });
+      socket.on('213', function (info) { $('#213').text(info); });
+      socket.on('261', function (info) { $('#261').text(info); });
+      socket.on('301', function (info) { $('#301').text(info); });
+      socket.on('323', function (info) { $('#323').text(info); });
+      socket.on('358', function (info) { $('#358').text(info); });
+    });
+  </script>
+</body>
+</html>
+
+```
+
+서버 구동
+
+```
+cd ~/bus_info513
+```
+
+```
+node app.js
+```
+
+웹브라우저(Chrome 외)에서의 확인
+
+URL창에 `localhost:3513`을 입력 후, 엔터

@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const SERVICE_KEY = "your_encoded_authorization_key";
+const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
 
 // 기준 좌표 (강호항공고등학교 )
 const LAT = 35.428588;
@@ -38,7 +38,7 @@ async function fetchNearbyStations() {
 
     const stations = Array.isArray(items) ? items : [items];
 
-    // 거리 직접 계산 후 반경 1000m 이내만 필터링
+    // 거리 직접 계산 후 주어진반경 RADIUS값 이내만 필터링
     const filtered = stations.map(stn => {
       const dist = haversine(LAT, LNG, parseFloat(stn.gpslati), parseFloat(stn.gpslong));
       return { ...stn, dist };
@@ -66,4 +66,3 @@ async function fetchNearbyStations() {
 }
 
 fetchNearbyStations();
-

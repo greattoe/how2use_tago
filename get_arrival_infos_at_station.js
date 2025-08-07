@@ -1,9 +1,14 @@
 const axios = require('axios');
 
-const SERVICE_KEY = "your_encoded_authorization_key";
+const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
 const CITY_CODE = "35370";
-const NODE_ID = "TSB318000118"; // 고창중 정류장
-const TARGET_ROUTE_NOS = ["189", "208", "213", "261", "301", "323", "358"];
+const NODE_ID = "TSB318000513"; // 고창중 정류장
+const TARGET_ROUTE_NOS = ["189", "206", "213", "261", "301", "323", "358"];
+
+// 숫자만 남기고 노선번호 정규화 (예: "261-1" → "2611")
+function normalizeRouteNo(rawNo) {
+  return String(rawNo).replace(/[^0-9]/g, '');
+}
 
 // 현재 HHMM 시간 반환
 function getCurrentTimeHHMM() {
@@ -13,7 +18,28 @@ function getCurrentTimeHHMM() {
   return parseInt(hh + mm, 10);
 }
 
-// 정류장을 경유하는 전체 노선 목록 조회
+// 고창군 전체 노선 목록 가져와 routeNo → routeId 매핑
+async function fetchAllRoutesInCity() {
+  const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteNoList` +
+              `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&_type=json&numOfRows=300&pageNo=1`;
+
+  const response = await axios.get(url);
+  const items = response.data?.response?.body?.items?.item;
+  if (!items) return {};
+  const list = Array.isArray(items) ? items : [items];
+
+  const map = {};
+  for (const r of list) {
+    const no = normalizeRouteNo(r.routeno);
+    if (TARGET_ROUTE_NOS.includes(no)) {
+      map[no] = r.routeid;
+    }
+  }
+
+  return map;
+}
+
+// 정류장 경유 노선 목록 조회
 async function fetchRoutesAtStation() {
   const url = `https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeid=${NODE_ID}` +
@@ -25,7 +51,7 @@ async function fetchRoutesAtStation() {
   return Array.isArray(items) ? items : [items];
 }
 
-// 노선별 첫차, 막차 시간 조회
+// 노선 상세 정보 조회
 async function fetchRouteInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/BusRouteInfoInqireService/getRouteInfoIem` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&routeId=${routeId}&_type=json`;
@@ -34,7 +60,7 @@ async function fetchRouteInfo(routeId) {
   return response.data?.response?.body?.items?.item || null;
 }
 
-// 도착정보 조회
+// 도착 정보 조회
 async function fetchArrivalInfo(routeId) {
   const url = `https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList` +
               `?serviceKey=${SERVICE_KEY}&cityCode=${CITY_CODE}&nodeId=${NODE_ID}&routeId=${routeId}&_type=json`;
@@ -49,19 +75,35 @@ async function fetchArrivalInfo(routeId) {
 async function main() {
   try {
     const nowHHMM = getCurrentTimeHHMM();
-    const routes = await fetchRoutesAtStation();
-    const targetRoutes = routes.filter(r => TARGET_ROUTE_NOS.includes(String(r.routeno)));
 
-    if (targetRoutes.length === 0) {
+    // 전체 노선에서 실제 routeId 매핑 확보
+    const routeIdMap = await fetchAllRoutesInCity();
+
+    // 정류장 경유 노선 조회
+    const stationRoutes = await fetchRoutesAtStation();
+    const availableRoutes = stationRoutes.filter(r =>
+      TARGET_ROUTE_NOS.includes(normalizeRouteNo(r.routeno))
+    );
+
+    if (availableRoutes.length === 0) {
       console.log("대상 노선이 해당 정류장을 경유하지 않습니다.");
       return;
     }
 
-    for (const route of targetRoutes) {
-      const routeNo = String(route.routeno);
-      const routeId = route.routeid;
-      const routeInfo = await fetchRouteInfo(routeId);
+    const checked = new Set();
 
+    for (const r of availableRoutes) {
+      const routeNo = normalizeRouteNo(r.routeno);
+      if (checked.has(routeNo)) continue;
+      checked.add(routeNo);
+
+      const routeId = routeIdMap[routeNo];
+      if (!routeId) {
+        console.log("노선 %s: routeId 매핑 실패 (정류장 routeId: %s)", routeNo, r.routeid);
+        continue;
+      }
+
+      const routeInfo = await fetchRouteInfo(routeId);
       if (!routeInfo) {
         console.log("노선 %s (%s): 상세정보 조회 실패", routeNo, routeId);
         continue;

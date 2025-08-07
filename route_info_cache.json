@@ -1,0 +1,62 @@
+{
+  "date": "2025-08-06",
+  "data": {
+    "TSB318000464": {
+      "endnodenm": "고창문화터미널",
+      "endvehicletime": "0915",
+      "intervaltime": 0,
+      "routeid": "TSB318000464",
+      "routeno": 323,
+      "routetp": "농어촌(일반)버스",
+      "startnodenm": "고창문화터미널",
+      "startvehicletime": "0915"
+    },
+    "TSB318000163": {
+      "endnodenm": "시내버스터미널",
+      "endvehicletime": 1920,
+      "intervaltime": 0,
+      "routeid": "TSB318000163",
+      "routeno": 301,
+      "routetp": "농어촌(일반)버스",
+      "startnodenm": "고창문화터미널",
+      "startvehicletime": 1920
+    },
+    "TSB318000058": {
+      "endnodenm": "고창문화터미널",
+      "routeid": "TSB318000058",
+      "routeno": 189,
+      "routetp": "농어촌(일반)버스",
+      "startnodenm": "고창문화터미널"
+    },
+    "TSB318000506": {
+      "endnodenm": "고창안과",
+      "endvehicletime": 1910,
+      "intervaltime": 0,
+      "routeid": "TSB318000506",
+      "routeno": 358,
+      "routetp": "농어촌(일반)버스",
+      "startnodenm": "고창문화터미널",
+      "startvehicletime": 1910
+    },
+    "TSB318000474": {
+      "endnodenm": "고창문화터미널",
+      "endvehicletime": "0645",
+      "intervaltime": 0,
+      "routeid": "TSB318000474",
+      "routeno": 208,
+      "routetp": "농어촌(일반)버스",
+      "startnodenm": "고창문화터미널",
+      "startvehicletime": "0645"
+    },
+    "TSB318000024": {
+      "endnodenm": "고창문화터미널",
+      "endvehicletime": 1720,
+      "intervaltime": 390,
+      "routeid": "TSB318000024",
+      "routeno": 261,
+      "routetp": "농어촌(일반)버스",
+      "startnodenm": "고창문화터미널",
+      "startvehicletime": 1050
+    }
+  }
+}

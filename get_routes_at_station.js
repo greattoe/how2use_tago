@@ -1,8 +1,8 @@
 const axios = require('axios');
 
-const SERVICE_KEY = "your_encoded_authorization_key";
+const SERVICE_KEY = "ygh%2F%2F8luC%2BEBKC6eahxb3VZZI5R27EQgk2T%2Bh%2BqryD5QK%2FXMbGnR2%2B0%2FSAE3C6slREn8QKOrZEXEPj7WPl0Tzw%3D%3D";
 const CITY_CODE = "35370";  // 고창군
-const NODE_ID = "TSB318000513";  // 조회 대상 정류소 ID
+const NODE_ID = "TSB318000118";  // 조회 대상 정류소 ID TSB318001052
 
 async function fetchRoutesAtStation() {
   const url = "https://apis.data.go.kr/1613000/BusSttnInfoInqireService/getSttnThrghRouteList" +
