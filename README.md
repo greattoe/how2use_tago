@@ -2027,3 +2027,95 @@ URL창에 **`localhost:3513`**을 입력 후, 엔터
 
 ![](./img/station513.png)
 
+### App Iventor를 이용한 앱 제작
+
+[앱인벤터](https://ai2.appinventor.mit.edu) 계정이 있고, 타겟 스마트폰에는 [MIT AI2 Companion - Google Play 앱](https://play.google.com/store/apps/details?id=edu.mit.appinventor.aicompanion3&hl=ko)이 설치되어 있다는 것을 전제한다.
+
+
+
+지금부터 **앱 인벤터로 “웹사이트 선택 후 보여주는 앱”을 처음부터 단계별로 정확하게 만드는 방법**을 순서대로 알려줄게.
+ **3개의 웹사이트 중 하나를 선택해서 WebViewer로 보여주는 앱**이야.
+
+------
+
+## 목표
+
+1. 앱 실행 → “정류장 선택” 버튼이 뜨고
+2. 클릭 → `"고창중"`, `"보건소"`, `"ㅣ내버스터미널"` 중 선택
+3. 선택하면 해당 웹사이트가 `WebViewer` 안에 표시됨
+
+------
+
+## 1. 새 프로젝트 만들기
+
+1. 앱 인벤터 사이트 접속
+2. 로그인 → **Create New Project**
+3. 이름: `Bus Arrival Info`
+
+------
+
+## 2. Designer 탭 - 화면 구성
+
+### 추가해야 할 컴포넌트:
+
+| 구성요소        | 위치           | 역할          |
+| --------------- | -------------- | ------------- |
+| **ListPicker1** | User Interface | 목록에서 선택 |
+| **WebViewer1**  | User Interface | 웹페이지 표시 |
+
+### 컴포넌트 별 속성 설정 (각각 클릭해서 설정)
+
+#### ListPicker1:
+
+- `Text`: `"정류장 선택"`
+- `ShowFilterBar`: 체크 안 해도 됨
+- `Width`: `Fill parent`
+
+#### WebViewer1:
+
+- `HomeUrl`: 빈칸 또는 `"about:blank"`
+- `Width`, `Height`: `Fill parent`
+
+
+
+### 3.  Blocks 탭 - 블록 코딩
+
+#### ① 앱 시작 시 목록 설정
+
+```
+when Screen1.Initialize
+do set ListPicker1.Elements to make a list
+   "고창중"
+   "보건소"
+   "시내버스터미널"
+
+```
+
+
+
+#### ② 선택한 항목에 따라 웹사이트 열기
+
+```
+when ListPicker1.AfterPicking
+do
+  if ListPicker1.Selection = "고창중"
+  then call WebViewer1.GoToUrl("http://10.42.0.1:3118")
+  else if ListPicker1.Selection = "보건소"
+  then call WebViewer1.GoToUrl("http://10.42.0.1:3119")
+  else if ListPicker1.Selection = "시내버스터미널"
+  then call WebViewer1.GoToUrl("http://10.42.0.1:3513")
+
+```
+
+![](./img/app_inventor_block_coding.png)
+
+### 4. 실행 및 테스트
+
+### AI2 Companion 앱 실행 (스마트폰에서)
+
+1. 앱 인벤터에서 **"Connect → AI Companion"**
+2. QR코드 스캔 → 실시간 실행
+
+다음과 같이 정류장 선택버튼 클릭 후 고창중/보건소/시내버스터미널 중 하나를 선택한다.
+
+![](./img/result_of_app_inventor.png)
