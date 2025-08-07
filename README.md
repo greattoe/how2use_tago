@@ -1014,11 +1014,11 @@ main();
 
 | 정류장            | 정류장ID     | 웹앱(폴더)명 |
 | ----------------- | ------------ | ------------ |
-| 1. 고창중         | TSB318000118 | bus118       |
-| 2. 보건소         | TSB318000119 | bus119       |
-| 3. 시내버스터미널 | TSB318000513 | bus513       |
+| 1. 고창중         | TSB318000118 | bus_info118  |
+| 2. 보건소         | TSB318000119 | bus_info119  |
+| 3. 시내버스터미널 | TSB318000513 | bus_info513  |
 
-### 1. 고창중(bus118)
+### 1. 고창중(bus_info118)
 
 `express`를 이용하여 웹 어플리케이션 `bus118` 작성
 
@@ -1065,7 +1065,7 @@ const io = socketIO(server);
 
 app.use(express.static(__dirname + '/public'));
 
-const PORT = 3118;
+const PORT = 3118; // 3000이 아님!
 const SERVICE_KEY = "여기에_본인_서비스키";
 const CITY_CODE = "35370"; // 고창군
 const NODE_ID = "TSB318000118"; // 고창중
@@ -1348,7 +1348,7 @@ URL창에 **`localhost:3118`**을 입력 후, 엔터
 
 
 
-### 2. 보건소(bus119)
+### 2. 보건소(bus_info119)
 
 `express`를 이용하여 웹 어플리케이션 `bus_info119`작성
 
@@ -1667,13 +1667,13 @@ node app.js
 
 웹브라우저(Chrome 외)에서의 확인
 
-URL창에 `localhost:3119`을 입력 후, 엔터
+URL창에 **`localhost:3119`**을 입력 후, 엔터
 
 ![](./img/station119.png)
 
 
 
-### 3. 시내버스터미널(bus513)
+### 3. 시내버스터미널(bus_info513)
 
 `express`를 이용하여 웹 어플리케이션 `bus_info513`작성
 
