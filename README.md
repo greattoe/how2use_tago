@@ -2118,4 +2118,4 @@ do
 
 다음과 같이 정류장 선택버튼 클릭 후 고창중/보건소/시내버스터미널 중 하나를 선택한다.
 
-![](./img/result_of_app_inventor.png)
+![](./img/app_Screenshots__half_size_all.png)
